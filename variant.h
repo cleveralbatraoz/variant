@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include <algorithm>
 #include <cstddef>
 #include <type_traits>
@@ -29,13 +31,13 @@ public:
 
   template <size_t Index, typename... Args, std::enable_if_t<(Index < sizeof...(Types)), int> = 0,
             std::enable_if_t<(std::is_constructible_v<details::type_alternative_t<Index, Types...>, Args...>), int> = 0>
-  explicit constexpr variant(in_place_index_t<Index>, Args &&... args) noexcept(
+  explicit constexpr variant(in_place_index_t<Index>, Args &&...args) noexcept(
       std::is_nothrow_constructible_v<details::type_alternative_t<Index, Types...>, Types...>)
       : functionality_base(in_place_index<Index>, std::forward<Args>(args)...), conditional_base(details::dummy{}) {}
 
   template <typename T, typename... Args, std::enable_if_t<(details::is_unique_type_v<T, Types...>), int> = 0,
             std::enable_if_t<(std::is_constructible_v<T, Args...>), int> = 0>
-  explicit constexpr variant(in_place_type_t<T>, Args &&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
+  explicit constexpr variant(in_place_type_t<T>, Args &&...args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
       : variant(in_place_index<details::type_index_v<T, Types...>>, std::forward<Args>(args)...) {}
 
   template <typename T, typename Decayed = std::decay_t<T>,
@@ -75,12 +77,12 @@ public:
 
   variant &operator=(variant &&) = default;
 
-  template <typename T, typename... Args> T &emplace(Args &&... args) {
+  template <typename T, typename... Args> T &emplace(Args &&...args) {
     constexpr size_t Index = details::type_index_v<T, Types...>;
     return emplace<Index>(std::forward<Args>(args)...);
   }
 
-  template <size_t Index, typename... Args> details::type_alternative_t<Index, Types...> &emplace(Args &&... args) {
+  template <size_t Index, typename... Args> details::type_alternative_t<Index, Types...> &emplace(Args &&...args) {
     if (current_value_index != variant_npos) {
       this->destroy();
     }

@@ -14,7 +14,7 @@ template <bool IsTriviallyDestructible, typename HeadType, typename... TailTypes
   constexpr indexed_storage() noexcept : current_value_index(variant_npos) {}
 
   template <size_t Index, typename... Args>
-  explicit constexpr indexed_storage(in_place_index_t<Index>, Args &&... args) noexcept(
+  explicit constexpr indexed_storage(in_place_index_t<Index>, Args &&...args) noexcept(
       std::is_nothrow_constructible_v<type_alternative_t<Index, HeadType, TailTypes...>, Args...>)
       : current_value_index(variant_npos), storage(in_place_index<Index>, std::forward<Args>(args)...) {
     current_value_index = Index;
@@ -32,7 +32,7 @@ template <typename HeadType, typename... TailTypes> struct indexed_storage<false
   constexpr indexed_storage() noexcept : current_value_index(variant_npos) {}
 
   template <size_t Index, typename... Args>
-  explicit constexpr indexed_storage(in_place_index_t<Index>, Args &&... args) noexcept(
+  explicit constexpr indexed_storage(in_place_index_t<Index>, Args &&...args) noexcept(
       std::is_nothrow_constructible_v<type_alternative_t<Index, HeadType, TailTypes...>, Args...>)
       : current_value_index(variant_npos), storage(in_place_index<Index>, std::forward<Args>(args)...) {
     current_value_index = Index;

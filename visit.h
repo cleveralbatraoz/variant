@@ -37,8 +37,8 @@ template <typename T, size_t HeadSize, size_t... TailSizes> struct multi_array<T
 
 template <size_t... Indexes> struct invoker {
   template <typename ResultType, typename Visitor, typename... Variants>
-  static constexpr ResultType invoke(Visitor &&visitor, Variants &&... variants) {
-    return visitor(get<Indexes>(std::forward<Variants>(variants))...);
+  static constexpr ResultType invoke(Visitor &&visitor, Variants &&...variants) {
+    return std::forward<Visitor>(visitor)(get<Indexes>(std::forward<Variants>(variants))...);
   }
 };
 
@@ -68,7 +68,7 @@ class table<multi_array<ReturnType (*)(Visitor, Variants...), HeadSize, TailSize
 public:
   constexpr table() noexcept : array(build_array()) {}
 
-  template <typename... Indexes> constexpr invoke_ptr get(Indexes &&... indexes) const noexcept {
+  template <typename... Indexes> constexpr invoke_ptr get(Indexes &&...indexes) const noexcept {
     return array.get(indexes...);
   }
 };
@@ -118,7 +118,7 @@ constexpr void visit(Visitor &&visitor,
 } // namespace details
 
 template <typename Visitor, typename... Variants>
-constexpr decltype(auto) visit(Visitor &&visitor, Variants &&... variants) {
+constexpr decltype(auto) visit(Visitor &&visitor, Variants &&...variants) {
   if ((variants.valueless_by_exception() || ...)) {
     throw bad_variant_access();
   }
