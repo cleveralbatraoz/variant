@@ -287,13 +287,13 @@ template <typename... Types> struct constructors_implementation : copy_assignmen
 struct dummy {};
 
 template <bool IsDefaultConstructible> struct conditional_default_constructible {
-  constexpr conditional_default_constructible(dummy) noexcept {}
+  explicit constexpr conditional_default_constructible(dummy) noexcept {}
 
   conditional_default_constructible() = default;
 };
 
 template <> struct conditional_default_constructible<false> {
-  constexpr conditional_default_constructible(dummy) noexcept {}
+  explicit constexpr conditional_default_constructible(dummy) noexcept {}
 
   conditional_default_constructible() = delete;
 };
@@ -303,13 +303,13 @@ using conditional_default_constructible_base =
     conditional_default_constructible<std::is_default_constructible_v<type_alternative_t<0, Types...>>>;
 
 template <bool IsCopyConstructible> struct conditional_copy_constructible {
-  constexpr conditional_copy_constructible(dummy) noexcept {}
+  explicit constexpr conditional_copy_constructible(dummy) noexcept {}
 
   conditional_copy_constructible() = default;
 };
 
 template <> struct conditional_copy_constructible<false> {
-  constexpr conditional_copy_constructible(dummy) noexcept {}
+  explicit constexpr conditional_copy_constructible(dummy) noexcept {}
 
   conditional_copy_constructible() = default;
 
@@ -325,13 +325,13 @@ using conditional_copy_constructible_base =
     conditional_copy_constructible<(std::is_copy_constructible_v<Types> && ...)>;
 
 template <bool IsMoveConstructible> struct conditional_move_constructible {
-  constexpr conditional_move_constructible(dummy) noexcept {}
+  explicit constexpr conditional_move_constructible(dummy) noexcept {}
 
   conditional_move_constructible() = default;
 };
 
 template <> struct conditional_move_constructible<false> {
-  constexpr conditional_move_constructible(dummy) noexcept {}
+  explicit constexpr conditional_move_constructible(dummy) noexcept {}
 
   conditional_move_constructible() = default;
 
@@ -343,13 +343,13 @@ using conditional_move_constructible_base =
     conditional_move_constructible<(std::is_move_constructible_v<Types> && ...)>;
 
 template <bool IsCopyAssignable> struct conditional_copy_assignable {
-  constexpr conditional_copy_assignable(dummy) noexcept {}
+  explicit constexpr conditional_copy_assignable(dummy) noexcept {}
 
   conditional_copy_assignable() = default;
 };
 
 template <> struct conditional_copy_assignable<false> {
-  constexpr conditional_copy_assignable(dummy) noexcept {}
+  explicit constexpr conditional_copy_assignable(dummy) noexcept {}
 
   conditional_copy_assignable() = default;
 
@@ -366,14 +366,14 @@ template <typename... Types>
 using conditional_copy_assignable_base = conditional_copy_assignable<(std::is_copy_constructible_v<Types> && ...) &&
                                                                      (std::is_copy_assignable_v<Types> && ...)>;
 
-template <bool ismoveassignable> struct conditional_move_assignable {
-  constexpr conditional_move_assignable(dummy) noexcept {}
+template <bool IsMoveAssignable> struct conditional_move_assignable {
+  explicit constexpr conditional_move_assignable(dummy) noexcept {}
 
   conditional_move_assignable() = default;
 };
 
 template <> struct conditional_move_assignable<false> {
-  constexpr conditional_move_assignable(dummy) noexcept {}
+  explicit constexpr conditional_move_assignable(dummy) noexcept {}
 
   conditional_move_assignable() = default;
 
@@ -400,7 +400,7 @@ struct conditional_constructors : conditional_default_constructible_base<Types..
   using base4 = conditional_copy_assignable_base<Types...>;
   using base5 = conditional_move_assignable_base<Types...>;
 
-  constexpr conditional_constructors(dummy) noexcept
+  explicit constexpr conditional_constructors(dummy) noexcept
       : base1(dummy{}), base2(dummy{}), base3(dummy{}), base4(dummy{}), base5(dummy{}) {}
 
   conditional_constructors() = default;
