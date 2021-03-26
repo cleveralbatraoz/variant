@@ -132,79 +132,8 @@ template <typename... Types> struct move_constructor<false, Types...> : copy_con
 template <typename... Types>
 using move_constructor_base = move_constructor<(std::is_trivially_move_constructible_v<Types> && ...), Types...>;
 
-template <bool IsTriviallyCopyAssignable, typename... Types> struct copy_assignment : move_constructor_base<Types...> {
+template <bool IsTriviallyMoveAssignable, typename... Types> struct move_assignment : move_constructor_base<Types...> {
   using base = move_constructor_base<Types...>;
-  using base::base;
-  using base::current_value_index;
-  using base::storage;
-
-  copy_assignment() = default;
-
-  copy_assignment(copy_assignment const &) = default;
-
-  copy_assignment(copy_assignment &&) = default;
-
-  copy_assignment &operator=(copy_assignment const &) = default;
-};
-
-template <typename... Types> struct copy_assignment<false, Types...> : move_constructor_base<Types...> {
-  using base = move_constructor_base<Types...>;
-  using base::base;
-  using base::current_value_index;
-  using base::storage;
-
-  copy_assignment() = default;
-
-  copy_assignment(copy_assignment const &) = default;
-
-  copy_assignment(copy_assignment &&) = default;
-
-  copy_assignment &operator=(copy_assignment const &other) noexcept((std::is_nothrow_copy_constructible_v<Types> &&
-                                                                     ...) &&
-                                                                    (std::is_nothrow_copy_assignable_v<Types> && ...)) {
-    if (other.current_value_index == variant_npos) {
-      if (current_value_index != variant_npos) {
-        this->destroy();
-      }
-    } else if (current_value_index == variant_npos) {
-      current_value_index = variant_npos;
-      storage.construct_from_other(other.storage, other.current_value_index);
-    } else if (current_value_index == other.current_value_index) {
-      try {
-        details::visit(
-            [other](auto &value) {
-              details::visit(
-                  [&value](auto const &other_value) {
-                    using Type = std::decay_t<decltype(value)>;
-                    using OtherType = std::decay_t<decltype(other_value)>;
-                    if constexpr (std::is_same_v<Type, OtherType>) {
-                      value = other_value;
-                    }
-                  },
-                  other.storage, other.current_value_index);
-            },
-            storage, current_value_index);
-      } catch (...) {
-        current_value_index = variant_npos;
-        throw;
-      }
-    } else {
-      this->destroy();
-      current_value_index = variant_npos;
-      storage.construct_from_other(other.storage, other.current_value_index);
-    }
-    current_value_index = other.current_value_index;
-    return *this;
-  }
-};
-
-template <typename... Types>
-using copy_assignment_base = copy_assignment<(std::is_trivially_copy_constructible_v<Types> && ...) &&
-                                                 (std::is_trivially_copy_assignable_v<Types> && ...),
-                                             Types...>;
-
-template <bool IsTriviallyMoveAssignable, typename... Types> struct move_assignment : copy_assignment_base<Types...> {
-  using base = copy_assignment_base<Types...>;
   using base::base;
   using base::current_value_index;
   using base::storage;
@@ -220,8 +149,8 @@ template <bool IsTriviallyMoveAssignable, typename... Types> struct move_assignm
   move_assignment &operator=(move_assignment &&) = default;
 };
 
-template <typename... Types> struct move_assignment<false, Types...> : copy_assignment_base<Types...> {
-  using base = copy_assignment_base<Types...>;
+template <typename... Types> struct move_assignment<false, Types...> : move_constructor_base<Types...> {
+  using base = move_constructor_base<Types...>;
   using base::base;
   using base::current_value_index;
   using base::storage;
@@ -277,8 +206,83 @@ using move_assignment_base = move_assignment<(std::is_trivially_move_constructib
                                                  (std::is_trivially_move_assignable_v<Types> && ...),
                                              Types...>;
 
-template <typename... Types> struct constructors_implementation : move_assignment_base<Types...> {
+template <bool IsTriviallyCopyAssignable, typename... Types> struct copy_assignment : move_assignment_base<Types...> {
   using base = move_assignment_base<Types...>;
+  using base::base;
+  using base::current_value_index;
+  using base::storage;
+
+  copy_assignment() = default;
+
+  copy_assignment(copy_assignment const &) = default;
+
+  copy_assignment(copy_assignment &&) = default;
+
+  copy_assignment &operator=(copy_assignment const &) = default;
+
+  copy_assignment &operator=(copy_assignment &&) = default;
+};
+
+template <typename... Types> struct copy_assignment<false, Types...> : move_assignment_base<Types...> {
+  using base = move_assignment_base<Types...>;
+  using base::base;
+  using base::current_value_index;
+  using base::storage;
+
+  copy_assignment() = default;
+
+  copy_assignment(copy_assignment const &) = default;
+
+  copy_assignment(copy_assignment &&) = default;
+
+  copy_assignment &operator=(copy_assignment const &other) noexcept((std::is_nothrow_copy_constructible_v<Types> &&
+                                                                     ...) &&
+                                                                    (std::is_nothrow_copy_assignable_v<Types> && ...)) {
+    if (other.current_value_index == variant_npos) {
+      if (current_value_index != variant_npos) {
+        this->destroy();
+      }
+    } else if (current_value_index == variant_npos) {
+      current_value_index = variant_npos;
+      storage.construct_from_other(other.storage, other.current_value_index);
+    } else if (current_value_index == other.current_value_index) {
+      try {
+        details::visit(
+            [other](auto &value) {
+              details::visit(
+                  [&value](auto const &other_value) {
+                    using Type = std::decay_t<decltype(value)>;
+                    using OtherType = std::decay_t<decltype(other_value)>;
+                    if constexpr (std::is_same_v<Type, OtherType>) {
+                      value = other_value;
+                    }
+                  },
+                  other.storage, other.current_value_index);
+            },
+            storage, current_value_index);
+      } catch (...) {
+        current_value_index = variant_npos;
+        throw;
+      }
+    } else {
+      this->destroy();
+      current_value_index = variant_npos;
+      storage.construct_from_other(other.storage, other.current_value_index);
+    }
+    current_value_index = other.current_value_index;
+    return *this;
+  }
+
+  copy_assignment &operator=(copy_assignment &&) = default;
+};
+
+template <typename... Types>
+using copy_assignment_base = copy_assignment<(std::is_trivially_copy_constructible_v<Types> && ...) &&
+                                                 (std::is_trivially_copy_assignable_v<Types> && ...),
+                                             Types...>;
+
+template <typename... Types> struct constructors_implementation : copy_assignment_base<Types...> {
+  using base = copy_assignment_base<Types...>;
   using base::base;
   using base::current_value_index;
   using base::storage;
