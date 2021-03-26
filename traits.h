@@ -111,14 +111,13 @@ template <typename Required, typename T> struct overloader<Required, variant<T>,
 template <typename Required, typename Variant, typename Result = void> struct type_matcher { using type = void; };
 
 template <typename Required, typename... Types>
-struct type_matcher<
-    Required, variant<Types...>,
-    std::void_t<decltype(
-        overloader<Required, variant<Types...>, creatable_v<type_alternative_t<0, Types...>, Required>>::function(
-            std::declval<Required>()))>> {
-  using type = decltype(
-      overloader<Required, variant<Types...>, creatable_v<type_alternative_t<0, Types...>, Required>>::function(
-          std::declval<Required>()));
+struct type_matcher<Required, variant<Types...>,
+                    std::void_t<decltype(overloader<Required, variant<Types...>,
+                                                    creatable_v<type_alternative_t<0, Types...>,
+                                                                Required>>::function(std::declval<Required>()))>> {
+  using type =
+      decltype(overloader<Required, variant<Types...>,
+                          creatable_v<type_alternative_t<0, Types...>, Required>>::function(std::declval<Required>()));
 };
 
 template <typename Required, typename Variant> using type_matcher_t = typename type_matcher<Required, Variant>::type;

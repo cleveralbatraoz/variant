@@ -215,4 +215,3 @@ template <typename... Types> constexpr bool operator<=(variant<Types...> const &
 template <typename... Types> constexpr bool operator>=(variant<Types...> const &a, variant<Types...> const &b) {
   return !(a < b);
 }
-
