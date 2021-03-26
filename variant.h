@@ -77,12 +77,16 @@ public:
 
   variant &operator=(variant &&) = default;
 
-  template <typename T, typename... Args> T &emplace(Args &&...args) {
+  template <typename T, typename... Args, std::enable_if_t<details::is_unique_type_v<T, Types...>, int> = 0,
+            std::enable_if_t<std::is_constructible_v<T, Args...>, int> = 0>
+  T &emplace(Args &&...args) {
     constexpr size_t Index = details::type_index_v<T, Types...>;
     return emplace<Index>(std::forward<Args>(args)...);
   }
 
-  template <size_t Index, typename... Args> details::type_alternative_t<Index, Types...> &emplace(Args &&...args) {
+  template <size_t Index, typename... Args,
+            std::enable_if_t<std::is_constructible_v<details::type_alternative_t<Index, Types...>, Args...>, int> = 0>
+  details::type_alternative_t<Index, Types...> &emplace(Args &&...args) {
     if (current_value_index != variant_npos) {
       this->destroy();
     }
