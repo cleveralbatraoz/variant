@@ -259,9 +259,9 @@ template <typename... Types> struct copy_assignment<false, Types...> : move_assi
                   if constexpr (std::is_nothrow_copy_constructible_v<OtherType> ||
                                 !std::is_nothrow_move_constructible_v<OtherType>) {
                     this->destroy();
-                    current_value_index = variant_npos;
-                    storage.construct_from_other(other.storage, other.current_value_index);
-                    current_value_index = other.current_value_index;
+                    this->current_value_index = variant_npos;
+                    this->storage.construct_from_other(other.storage, other.current_value_index);
+                    this->current_value_index = other.current_value_index;
                   } else {
                     this->operator=(copy_assignment(other));
                   }
