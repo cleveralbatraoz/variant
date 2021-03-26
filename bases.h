@@ -80,7 +80,8 @@ template <typename... Types> struct copy_constructor<false, Types...> : indexed_
 
   copy_constructor() = default;
 
-  copy_constructor(copy_constructor const &other) noexcept((std::is_nothrow_copy_constructible_v<Types> && ...)) {
+  constexpr copy_constructor(copy_constructor const &other) noexcept((std::is_nothrow_copy_constructible_v<Types> &&
+                                                                      ...)) {
     current_value_index = variant_npos;
     if (other.current_value_index != variant_npos) {
       storage.construct_from_other(other.storage, other.current_value_index);
@@ -118,7 +119,7 @@ template <typename... Types> struct move_constructor<false, Types...> : copy_con
 
   move_constructor(move_constructor const &) = default;
 
-  move_constructor(move_constructor &&other) noexcept((std::is_nothrow_move_constructible_v<Types> && ...)) {
+  constexpr move_constructor(move_constructor &&other) noexcept((std::is_nothrow_move_constructible_v<Types> && ...)) {
     current_value_index = variant_npos;
     if (other.current_value_index != variant_npos) {
       storage.construct_from_other(std::move(other.storage), other.current_value_index);
