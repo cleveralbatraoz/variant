@@ -163,40 +163,33 @@ template <typename... Types> struct move_assignment<false, Types...> : move_cons
 
   move_assignment &operator=(move_assignment const &) = default;
 
-  move_assignment &operator=(move_assignment &&other) noexcept((std::is_nothrow_move_constructible_v<Types> && ...) &&
-                                                               (std::is_nothrow_move_assignable_v<Types> && ...)) {
-    if (other.current_value_index == variant_npos) {
-      if (current_value_index != variant_npos) {
-        this->destroy();
-      }
-    } else if (current_value_index == variant_npos) {
+  constexpr move_assignment &
+  operator=(move_assignment &&other) noexcept((std::is_nothrow_move_constructible_v<Types> && ...) &&
+                                              (std::is_nothrow_move_assignable_v<Types> && ...)) {
+    if (current_value_index == variant_npos && other.current_value_index == variant_npos) {
+    } else if (other.current_value_index == variant_npos) {
+      this->destroy();
       current_value_index = variant_npos;
-      storage.construct_from_other(std::move(other.storage), other.current_value_index);
     } else if (current_value_index == other.current_value_index) {
-      try {
-        details::visit(
-            [&other](auto &value) {
-              details::visit(
-                  [&value](auto &other_value) {
-                    using Type = std::decay_t<decltype(value)>;
-                    using OtherType = std::decay_t<decltype(other_value)>;
-                    if constexpr (std::is_same_v<Type, OtherType>) {
-                      value = std::move(other_value);
-                    }
-                  },
-                  other.storage, other.current_value_index);
-            },
-            storage, current_value_index);
-      } catch (...) {
-        current_value_index = variant_npos;
-        throw;
-      }
+      details::visit(
+          [&other](auto &value) {
+            details::visit(
+                [&value](auto &other_value) {
+                  using Type = decltype(value);
+                  using OtherType = decltype(other_value);
+                  if constexpr (std::is_same_v<std::decay_t<Type>, std::decay_t<OtherType>>) {
+                    value = std::move(other_value);
+                  }
+                },
+                other.storage, other.current_value_index);
+          },
+          storage, current_value_index);
     } else {
       this->destroy();
       current_value_index = variant_npos;
       storage.construct_from_other(std::move(other.storage), other.current_value_index);
+      current_value_index = other.current_value_index;
     }
-    current_value_index = other.current_value_index;
     return *this;
   }
 };
@@ -235,41 +228,47 @@ template <typename... Types> struct copy_assignment<false, Types...> : move_assi
 
   copy_assignment(copy_assignment &&) = default;
 
-  copy_assignment &operator=(copy_assignment const &other) noexcept((std::is_nothrow_copy_constructible_v<Types> &&
-                                                                     ...) &&
-                                                                    (std::is_nothrow_copy_assignable_v<Types> && ...)) {
-    if (other.current_value_index == variant_npos) {
-      if (current_value_index != variant_npos) {
-        this->destroy();
-      }
-    } else if (current_value_index == variant_npos) {
-      current_value_index = variant_npos;
-      storage.construct_from_other(other.storage, other.current_value_index);
-    } else if (current_value_index == other.current_value_index) {
-      try {
-        details::visit(
-            [other](auto &value) {
-              details::visit(
-                  [&value](auto const &other_value) {
-                    using Type = std::decay_t<decltype(value)>;
-                    using OtherType = std::decay_t<decltype(other_value)>;
-                    if constexpr (std::is_same_v<Type, OtherType>) {
-                      value = other_value;
-                    }
-                  },
-                  other.storage, other.current_value_index);
-            },
-            storage, current_value_index);
-      } catch (...) {
-        current_value_index = variant_npos;
-        throw;
-      }
-    } else {
+  constexpr copy_assignment &
+  operator=(copy_assignment const &other) noexcept((std::is_nothrow_copy_constructible_v<Types> && ...) &&
+                                                   (std::is_nothrow_copy_assignable_v<Types> && ...)) {
+    if (current_value_index == variant_npos && other.current_value_index == variant_npos) {
+    } else if (other.current_value_index == variant_npos) {
       this->destroy();
       current_value_index = variant_npos;
-      storage.construct_from_other(other.storage, other.current_value_index);
+    } else if (current_value_index == other.current_value_index) {
+      details::visit(
+          [other](auto &value) {
+            details::visit(
+                [&value](auto &other_value) {
+                  using Type = decltype(value);
+                  using OtherType = decltype(other_value);
+                  if constexpr (std::is_same_v<std::decay_t<Type>, std::decay_t<OtherType>>) {
+                    value = other_value;
+                  }
+                },
+                other.storage, other.current_value_index);
+          },
+          storage, current_value_index);
+    } else {
+      details::visit(
+          [other, this](auto &value) {
+            details::visit(
+                [this, other](auto &other_value) {
+                  using OtherType = decltype(other_value);
+                  if constexpr (std::is_nothrow_copy_constructible_v<OtherType> ||
+                                !std::is_nothrow_move_constructible_v<OtherType>) {
+                    this->destroy();
+                    current_value_index = variant_npos;
+                    storage.construct_from_other(other.storage, other.current_value_index);
+                    current_value_index = other.current_value_index;
+                  } else {
+                    this->operator=(copy_assignment(other));
+                  }
+                },
+                other.storage, other.current_value_index);
+          },
+          storage, current_value_index);
     }
-    current_value_index = other.current_value_index;
     return *this;
   }
 
