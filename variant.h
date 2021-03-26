@@ -23,7 +23,7 @@ class variant : details::constructors_implementation<Types...>, details::conditi
   using conditional_base = details::conditional_constructors<Types...>;
 
 public:
-  constexpr variant() = default;
+  variant() = default;
 
   variant(variant const &) = default;
 
