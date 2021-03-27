@@ -64,8 +64,6 @@ template <bool IsTriviallyCopyConstructible, typename... Types>
 struct copy_constructor : indexed_storage_base<Types...> {
   using base = indexed_storage_base<Types...>;
   using base::base;
-  using base::current_value_index;
-  using base::storage;
 
   copy_constructor(copy_constructor const &) = default;
 };
@@ -73,15 +71,13 @@ struct copy_constructor : indexed_storage_base<Types...> {
 template <typename... Types> struct copy_constructor<false, Types...> : indexed_storage_base<Types...> {
   using base = indexed_storage_base<Types...>;
   using base::base;
-  using base::current_value_index;
-  using base::storage;
 
   constexpr copy_constructor(copy_constructor const &other) noexcept((std::is_nothrow_copy_constructible_v<Types> &&
                                                                       ...)) {
-    current_value_index = variant_npos;
+    this->current_value_index = variant_npos;
     if (other.current_value_index != variant_npos) {
-      storage.construct_from_other(other.storage, other.current_value_index);
-      current_value_index = other.current_value_index;
+      this->storage.construct_from_other(other.storage, other.current_value_index);
+      this->current_value_index = other.current_value_index;
     }
   }
 };
@@ -93,8 +89,6 @@ template <bool IsTriviallyMoveConstructible, typename... Types>
 struct move_constructor : copy_constructor_base<Types...> {
   using base = copy_constructor_base<Types...>;
   using base::base;
-  using base::current_value_index;
-  using base::storage;
 
   move_constructor(move_constructor const &) = default;
 
@@ -106,16 +100,14 @@ struct move_constructor : copy_constructor_base<Types...> {
 template <typename... Types> struct move_constructor<false, Types...> : copy_constructor_base<Types...> {
   using base = copy_constructor_base<Types...>;
   using base::base;
-  using base::current_value_index;
-  using base::storage;
 
   move_constructor(move_constructor const &) = default;
 
   constexpr move_constructor(move_constructor &&other) noexcept((std::is_nothrow_move_constructible_v<Types> && ...)) {
-    current_value_index = variant_npos;
+    this->current_value_index = variant_npos;
     if (other.current_value_index != variant_npos) {
-      storage.construct_from_other(std::move(other.storage), other.current_value_index);
-      current_value_index = other.current_value_index;
+      this->storage.construct_from_other(std::move(other.storage), other.current_value_index);
+      this->current_value_index = other.current_value_index;
     }
   }
 
@@ -128,8 +120,6 @@ using move_constructor_base = move_constructor<(std::is_trivially_move_construct
 template <bool IsTriviallyMoveAssignable, typename... Types> struct move_assignment : move_constructor_base<Types...> {
   using base = move_constructor_base<Types...>;
   using base::base;
-  using base::current_value_index;
-  using base::storage;
 
   move_assignment(move_assignment const &) = default;
 
@@ -143,8 +133,6 @@ template <bool IsTriviallyMoveAssignable, typename... Types> struct move_assignm
 template <typename... Types> struct move_assignment<false, Types...> : move_constructor_base<Types...> {
   using base = move_constructor_base<Types...>;
   using base::base;
-  using base::current_value_index;
-  using base::storage;
 
   move_assignment(move_assignment const &) = default;
 
@@ -155,11 +143,11 @@ template <typename... Types> struct move_assignment<false, Types...> : move_cons
   constexpr move_assignment &
   operator=(move_assignment &&other) noexcept((std::is_nothrow_move_constructible_v<Types> && ...) &&
                                               (std::is_nothrow_move_assignable_v<Types> && ...)) {
-    if (current_value_index == variant_npos && other.current_value_index == variant_npos) {
+    if (this->current_value_index == variant_npos && other.current_value_index == variant_npos) {
     } else if (other.current_value_index == variant_npos) {
       this->destroy();
-      current_value_index = variant_npos;
-    } else if (current_value_index == other.current_value_index) {
+      this->current_value_index = variant_npos;
+    } else if (this->current_value_index == other.current_value_index) {
       details::visit(
           [&other](auto &value) {
             details::visit(
@@ -172,12 +160,12 @@ template <typename... Types> struct move_assignment<false, Types...> : move_cons
                 },
                 other.storage, other.current_value_index);
           },
-          storage, current_value_index);
+          this->storage, this->current_value_index);
     } else {
       this->destroy();
-      current_value_index = variant_npos;
-      storage.construct_from_other(std::move(other.storage), other.current_value_index);
-      current_value_index = other.current_value_index;
+      this->current_value_index = variant_npos;
+      this->storage.construct_from_other(std::move(other.storage), other.current_value_index);
+      this->current_value_index = other.current_value_index;
     }
     return *this;
   }
@@ -185,14 +173,13 @@ template <typename... Types> struct move_assignment<false, Types...> : move_cons
 
 template <typename... Types>
 using move_assignment_base = move_assignment<(std::is_trivially_move_constructible_v<Types> && ...) &&
-                                                 (std::is_trivially_move_assignable_v<Types> && ...),
+                                                 (std::is_trivially_move_assignable_v<Types> && ...) &&
+                                                 (std::is_trivially_destructible_v<Types> && ...),
                                              Types...>;
 
 template <bool IsTriviallyCopyAssignable, typename... Types> struct copy_assignment : move_assignment_base<Types...> {
   using base = move_assignment_base<Types...>;
   using base::base;
-  using base::current_value_index;
-  using base::storage;
 
   copy_assignment(copy_assignment const &) = default;
 
@@ -206,8 +193,6 @@ template <bool IsTriviallyCopyAssignable, typename... Types> struct copy_assignm
 template <typename... Types> struct copy_assignment<false, Types...> : move_assignment_base<Types...> {
   using base = move_assignment_base<Types...>;
   using base::base;
-  using base::current_value_index;
-  using base::storage;
 
   copy_assignment(copy_assignment const &) = default;
 
@@ -216,11 +201,11 @@ template <typename... Types> struct copy_assignment<false, Types...> : move_assi
   constexpr copy_assignment &
   operator=(copy_assignment const &other) noexcept((std::is_nothrow_copy_constructible_v<Types> && ...) &&
                                                    (std::is_nothrow_copy_assignable_v<Types> && ...)) {
-    if (current_value_index == variant_npos && other.current_value_index == variant_npos) {
+    if (this->current_value_index == variant_npos && other.current_value_index == variant_npos) {
     } else if (other.current_value_index == variant_npos) {
       this->destroy();
-      current_value_index = variant_npos;
-    } else if (current_value_index == other.current_value_index) {
+      this->current_value_index = variant_npos;
+    } else if (this->current_value_index == other.current_value_index) {
       details::visit(
           [other](auto &value) {
             details::visit(
@@ -233,7 +218,7 @@ template <typename... Types> struct copy_assignment<false, Types...> : move_assi
                 },
                 other.storage, other.current_value_index);
           },
-          storage, current_value_index);
+          this->storage, this->current_value_index);
     } else {
       details::visit(
           [other, this](auto &value) {
@@ -252,7 +237,7 @@ template <typename... Types> struct copy_assignment<false, Types...> : move_assi
                 },
                 other.storage, other.current_value_index);
           },
-          storage, current_value_index);
+          this->storage, this->current_value_index);
     }
     return *this;
   }
@@ -262,14 +247,13 @@ template <typename... Types> struct copy_assignment<false, Types...> : move_assi
 
 template <typename... Types>
 using copy_assignment_base = copy_assignment<(std::is_trivially_copy_constructible_v<Types> && ...) &&
-                                                 (std::is_trivially_copy_assignable_v<Types> && ...),
+                                                 (std::is_trivially_copy_assignable_v<Types> && ...) &&
+                                                 (std::is_trivially_destructible_v<Types> && ...),
                                              Types...>;
 
 template <typename... Types> struct constructors_implementation : copy_assignment_base<Types...> {
   using base = copy_assignment_base<Types...>;
   using base::base;
-  using base::current_value_index;
-  using base::storage;
 
   constexpr constructors_implementation() noexcept(
       std::is_nothrow_default_constructible_v<type_alternative_t<0, Types...>>)

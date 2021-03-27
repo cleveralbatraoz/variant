@@ -15,9 +15,6 @@
 template <typename... Types>
 class variant : details::constructors_implementation<Types...>, details::conditional_constructors<Types...> {
   using functionality_base = details::constructors_implementation<Types...>;
-  using functionality_base::current_value_index;
-  using functionality_base::storage;
-
   using conditional_base = details::conditional_constructors<Types...>;
 
 public:
@@ -57,7 +54,7 @@ public:
   variant &operator=(T &&value) noexcept(
       std::is_nothrow_constructible_v<MatchingType, T> &&std::is_nothrow_assignable_v<MatchingType &, T>) {
     constexpr size_t Index = details::type_index_v<MatchingType, Types...>;
-    if (current_value_index == Index) {
+    if (this->current_value_index == Index) {
       get<Index>(*this) = std::forward<T>(value);
     } else {
       if (std::is_nothrow_constructible_v<MatchingType, T> || !std::is_nothrow_move_constructible_v<MatchingType>) {
@@ -85,12 +82,12 @@ public:
   template <size_t Index, typename... Args,
             std::enable_if_t<std::is_constructible_v<details::type_alternative_t<Index, Types...>, Args...>, int> = 0>
   details::type_alternative_t<Index, Types...> &emplace(Args &&...args) {
-    if (current_value_index != variant_npos) {
+    if (this->current_value_index != variant_npos) {
       this->destroy();
     }
-    current_value_index = variant_npos;
-    storage.construct(in_place_index<Index>, std::forward<Args>(args)...);
-    current_value_index = Index;
+    this->current_value_index = variant_npos;
+    this->storage.construct(in_place_index<Index>, std::forward<Args>(args)...);
+    this->current_value_index = Index;
     return get<Index>(*this);
   }
 
@@ -100,15 +97,15 @@ public:
 
   void swap(variant &other) noexcept(((std::is_nothrow_move_constructible_v<Types> &&
                                        std::is_nothrow_swappable_v<Types>)&&...)) {
-    if (current_value_index == variant_npos) {
+    if (this->current_value_index == variant_npos) {
       if (other.current_value_index != variant_npos) {
-        storage.construct_from_other(std::move(other.storage), other.current_value_index);
+        this->storage.construct_from_other(std::move(other.storage), other.current_value_index);
         other.destroy();
       }
     } else if (other.current_value_index == variant_npos) {
-      other.storage.construct_from_other(std::move(storage), current_value_index);
+      other.storage.construct_from_other(std::move(this->storage), this->current_value_index);
       this->destroy();
-    } else if (current_value_index == other.current_value_index) {
+    } else if (this->current_value_index == other.current_value_index) {
       visit(
           [](auto &x, auto &y) {
             using Type1 = std::decay_t<decltype(x)>;
@@ -125,7 +122,7 @@ public:
       *this = std::move(copy);
       return;
     }
-    std::swap(current_value_index, other.current_value_index);
+    std::swap(this->current_value_index, other.current_value_index);
   }
 
   template <size_t Index, typename... Ts>
