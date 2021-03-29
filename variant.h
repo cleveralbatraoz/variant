@@ -97,7 +97,7 @@ public:
     if (this->current_value_index == variant_npos) {
       if (other.current_value_index != variant_npos) {
         this->storage.construct_from_other(std::move(other.storage), other.current_value_index);
-	this->current_value_index = other.current_value_index;
+        this->current_value_index = other.current_value_index;
         other.destroy();
       }
     } else if (other.current_value_index == variant_npos) {

@@ -22,9 +22,7 @@ template <bool IsTriviallyDestructible, typename HeadType, typename... TailTypes
 
   ~indexed_storage() noexcept = default;
 
-  void destroy() noexcept {
-    current_value_index = variant_npos;
-  }
+  void destroy() noexcept { current_value_index = variant_npos; }
 
   size_t current_value_index;
   variadic_union<true, HeadType, TailTypes...> storage;
@@ -47,7 +45,9 @@ template <typename HeadType, typename... TailTypes> struct indexed_storage<false
   }
 
   void destroy() noexcept {
-    if (current_value_index == variant_npos) { return; }
+    if (current_value_index == variant_npos) {
+      return;
+    }
     visit(
         [](auto &value) {
           using Type = std::decay_t<decltype(value)>;
