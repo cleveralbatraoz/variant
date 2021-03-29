@@ -204,9 +204,43 @@ template <typename... Types> constexpr bool operator>(variant<Types...> const &a
 }
 
 template <typename... Types> constexpr bool operator<=(variant<Types...> const &a, variant<Types...> const &b) {
-  return !(a > b);
+  if (a.valueless_by_exception()) {
+    return true;
+  } else if (b.valueless_by_exception()) {
+    return false;
+  } else if (a.index() != b.index()) {
+    return a.index() < b.index();
+  }
+  return visit(
+      [](auto const &x, auto const &y) {
+        using FirstType = std::decay_t<decltype(x)>;
+        using SecondType = std::decay_t<decltype(y)>;
+        if constexpr (std::is_same_v<FirstType, SecondType>) {
+          return x <= y;
+        } else {
+          return false;
+        }
+      },
+      a, b);
 }
 
 template <typename... Types> constexpr bool operator>=(variant<Types...> const &a, variant<Types...> const &b) {
-  return !(a < b);
+  if (b.valueless_by_exception()) {
+    return true;
+  } else if (a.valueless_by_exception()) {
+    return false;
+  } else if (a.index() != b.index()) {
+    return a.index() > b.index();
+  }
+  return visit(
+      [](auto const &x, auto const &y) {
+        using FirstType = std::decay_t<decltype(x)>;
+        using SecondType = std::decay_t<decltype(y)>;
+        if constexpr (std::is_same_v<FirstType, SecondType>) {
+          return x >= y;
+        } else {
+          return false;
+        }
+      },
+      a, b);
 }
