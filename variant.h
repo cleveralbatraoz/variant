@@ -13,7 +13,7 @@
 #include "visit.h"
 
 template <typename... Types>
-class variant : details::constructors_implementation<Types...>, details::conditional_constructors<Types...> {
+class variant final : details::constructors_implementation<Types...>, details::conditional_constructors<Types...> {
   using functionality_base = details::constructors_implementation<Types...>;
   using conditional_base = details::conditional_constructors<Types...>;
 
