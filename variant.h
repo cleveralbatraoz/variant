@@ -136,3 +136,77 @@ public:
   template <size_t Index, typename... Ts>
   friend constexpr variant_alternative_t<Index, variant<Ts...>> const &&get(variant<Ts...> const &&);
 };
+
+template <typename... Types> constexpr bool operator==(variant<Types...> const &a, variant<Types...> const &b) {
+  if (a.index() != b.index()) {
+    return false;
+  }
+  if (a.valueless_by_exception()) {
+    return true;
+  }
+  return visit(
+      [](auto const &x, auto const &y) {
+        using FirstType = std::decay_t<decltype(x)>;
+        using SecondType = std::decay_t<decltype(y)>;
+        if constexpr (std::is_same_v<FirstType, SecondType>) {
+          return x == y;
+        } else {
+          return false;
+        }
+      },
+      a, b);
+}
+
+template <typename... Types> constexpr bool operator!=(variant<Types...> const &a, variant<Types...> const &b) {
+  return !(a == b);
+}
+
+template <typename... Types> constexpr bool operator<(variant<Types...> const &a, variant<Types...> const &b) {
+  if (b.valueless_by_exception()) {
+    return false;
+  } else if (a.valueless_by_exception()) {
+    return true;
+  } else if (a.index() != b.index()) {
+    return a.index() < b.index();
+  }
+  return visit(
+      [](auto const &x, auto const &y) {
+        using FirstType = std::decay_t<decltype(x)>;
+        using SecondType = std::decay_t<decltype(y)>;
+        if constexpr (std::is_same_v<FirstType, SecondType>) {
+          return x < y;
+        } else {
+          return false;
+        }
+      },
+      a, b);
+}
+
+template <typename... Types> constexpr bool operator>(variant<Types...> const &a, variant<Types...> const &b) {
+  if (a.valueless_by_exception()) {
+    return false;
+  } else if (b.valueless_by_exception()) {
+    return true;
+  } else if (a.index() != b.index()) {
+    return a.index() > b.index();
+  }
+  return visit(
+      [](auto const &x, auto const &y) {
+        using FirstType = std::decay_t<decltype(x)>;
+        using SecondType = std::decay_t<decltype(y)>;
+        if constexpr (std::is_same_v<FirstType, SecondType>) {
+          return x > y;
+        } else {
+          return false;
+        }
+      },
+      a, b);
+}
+
+template <typename... Types> constexpr bool operator<=(variant<Types...> const &a, variant<Types...> const &b) {
+  return !(a > b);
+}
+
+template <typename... Types> constexpr bool operator>=(variant<Types...> const &a, variant<Types...> const &b) {
+  return !(a < b);
+}
