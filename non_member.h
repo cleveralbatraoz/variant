@@ -84,8 +84,6 @@ constexpr variant_alternative_t<Index, variant<Types...>> const &&get(variant<Ty
   if (v.index() != Index || Index == variant_npos) {
     throw bad_variant_access();
   }
-  static_assert(std::is_same_v<decltype(details::get<Index>(std::move(v.storage))),
-                               variant_alternative_t<Index, variant<Types...>> const &&>);
   return details::get<Index>(std::move(v.storage));
 }
 
