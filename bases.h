@@ -22,7 +22,9 @@ template <bool IsTriviallyDestructible, typename HeadType, typename... TailTypes
 
   ~indexed_storage() noexcept = default;
 
-  void destroy() noexcept {}
+  void destroy() noexcept {
+    current_value_index = variant_npos;
+  }
 
   size_t current_value_index;
   variadic_union<true, HeadType, TailTypes...> storage;
@@ -45,12 +47,14 @@ template <typename HeadType, typename... TailTypes> struct indexed_storage<false
   }
 
   void destroy() noexcept {
+    if (current_value_index == variant_npos) { return; }
     visit(
         [](auto &value) {
           using Type = std::decay_t<decltype(value)>;
           value.~Type();
         },
         storage, current_value_index);
+    current_value_index = variant_npos;
   }
 
   size_t current_value_index;
@@ -146,7 +150,6 @@ template <typename... Types> struct move_assignment<false, Types...> : move_cons
     if (this->current_value_index == variant_npos && other.current_value_index == variant_npos) {
     } else if (other.current_value_index == variant_npos) {
       this->destroy();
-      this->current_value_index = variant_npos;
     } else if (this->current_value_index == other.current_value_index) {
       details::visit(
           [&other](auto &value) {
@@ -163,7 +166,6 @@ template <typename... Types> struct move_assignment<false, Types...> : move_cons
           this->storage, this->current_value_index);
     } else {
       this->destroy();
-      this->current_value_index = variant_npos;
       this->storage.construct_from_other(std::move(other.storage), other.current_value_index);
       this->current_value_index = other.current_value_index;
     }
@@ -204,7 +206,6 @@ template <typename... Types> struct copy_assignment<false, Types...> : move_assi
     if (this->current_value_index == variant_npos && other.current_value_index == variant_npos) {
     } else if (other.current_value_index == variant_npos) {
       this->destroy();
-      this->current_value_index = variant_npos;
     } else if (this->current_value_index == other.current_value_index) {
       details::visit(
           [other](auto &value) {
@@ -228,7 +229,6 @@ template <typename... Types> struct copy_assignment<false, Types...> : move_assi
                   if constexpr (std::is_nothrow_copy_constructible_v<OtherType> ||
                                 !std::is_nothrow_move_constructible_v<OtherType>) {
                     this->destroy();
-                    this->current_value_index = variant_npos;
                     this->storage.construct_from_other(other.storage, other.current_value_index);
                     this->current_value_index = other.current_value_index;
                   } else {

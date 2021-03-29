@@ -82,10 +82,7 @@ public:
   template <size_t Index, typename... Args,
             std::enable_if_t<std::is_constructible_v<details::type_alternative_t<Index, Types...>, Args...>, int> = 0>
   details::type_alternative_t<Index, Types...> &emplace(Args &&...args) {
-    if (this->current_value_index != variant_npos) {
-      this->destroy();
-    }
-    this->current_value_index = variant_npos;
+    this->destroy();
     this->storage.construct(in_place_index<Index>, std::forward<Args>(args)...);
     this->current_value_index = Index;
     return get<Index>(*this);
@@ -100,10 +97,12 @@ public:
     if (this->current_value_index == variant_npos) {
       if (other.current_value_index != variant_npos) {
         this->storage.construct_from_other(std::move(other.storage), other.current_value_index);
+	this->current_value_index = other.current_value_index;
         other.destroy();
       }
     } else if (other.current_value_index == variant_npos) {
       other.storage.construct_from_other(std::move(this->storage), this->current_value_index);
+      other.current_value_index = this->current_value_index;
       this->destroy();
     } else if (this->current_value_index == other.current_value_index) {
       visit(
@@ -116,13 +115,13 @@ public:
             }
           },
           *this, other);
+      std::swap(this->current_value_index, other.current_value_index);
     } else {
       auto copy = std::move(other);
       other = std::move(*this);
       *this = std::move(copy);
       return;
     }
-    std::swap(this->current_value_index, other.current_value_index);
   }
 
   template <size_t Index, typename... Ts>
